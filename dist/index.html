@@ -1,464 +1,347 @@
 <!DOCTYPE html>
-<html lang="en">
-
-  <head>
+<html lang="zh-TW">
+<head>
     <meta charset="UTF-8">
-    <title>領航鈎織</title>
-    
-
-  </head>
-    
-  <body>
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>織織中 - 結構修復版 (v11)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>領航鈎織 - v13</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        :root {
-            --brand-color: #d3b17d;
-            --brand-light: #f4eee3;
-            --brand-dark: #b08d55;
-        }
-        body { 
-            background-color: #ffffff;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            color: #1f2937;
-            -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
-        }
+        :root { --brand-color: #d3b17d; --brand-light: #f4eee3; }
         
+        /* 基礎佈局：防止整個頁面彈跳 */
+        html, body { 
+            height: 100%; 
+            margin: 0; 
+            padding: 0; 
+            overflow: hidden; /* 鎖定最外層，改用內部滾動 */
+        }
+
+        body { 
+            background-color: #ffffff; 
+            font-family: -apple-system, sans-serif; 
+            -webkit-tap-highlight-color: transparent; 
+        }
+
+        /* 沉浸式導航樣式 */
         .focus-row { 
             background-color: var(--brand-light); 
             border-left: 6px solid var(--brand-color); 
             transform: scale(1.02); 
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            color: #1e293b;
-            font-weight: 700;
-            z-index: 10;
+            font-weight: 700; 
+            z-index: 10; 
         }
         
         .done-row { 
             opacity: 0.6; 
             filter: grayscale(100%); 
-            cursor: pointer; 
-        }
-        .done-row:active {
-            opacity: 0.9;
-            transform: scale(0.98);
-            background-color: #f1f5f9;
         }
 
-        .bg-brand { background-color: var(--brand-color); }
-        .text-brand { color: var(--brand-color); }
+        /* 關鍵：讓列表可以順暢滑動 */
+        #instructionList {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch; /* iOS 順滑滾動必備 */
+            scroll-behavior: smooth;
+        }
+
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        ::placeholder { color: #cbd5e1; opacity: 1; }
+        
+        [contenteditable="true"]:focus { 
+            outline: none; 
+            border-bottom: 2px dashed var(--brand-color); 
+            background: white; 
+        }
 
-        [contenteditable="true"]:focus {
-            outline: none;
-            border-bottom: 2px dashed var(--brand-color);
-            background-color: white;
-            padding: 4px;
+        /* 安全區域底部適配 */
+        .safe-area-inset-bottom {
+            padding-bottom: env(safe-area-inset-bottom);
         }
     </style>
 </head>
-<body class="bg-white min-h-screen flex flex-col overflow-hidden relative">
+<body class="flex flex-col">
 
     <section id="creatorView" class="flex flex-col h-full bg-white z-50 absolute inset-0">
-        <header class="pt-6 pb-2 px-6 bg-white flex justify-between items-center sticky top-0 z-10">
-            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">建立圖解庫</h1>
-            <button id="cancelCreateBtn" onclick="switchView('player')" class="text-slate-400 text-sm font-medium hidden">取消</button>
+        <header class="pt-10 pb-2 px-6 flex justify-between items-center bg-white border-b border-slate-50">
+            <h1 class="text-2xl font-bold">建立圖解庫</h1>
+            <button id="cancelBtn" onclick="switchView('player')" class="text-slate-400 hidden">取消</button>
         </header>
-
-        <div class="flex-1 overflow-y-auto px-6 pt-4 pb-20 no-scrollbar">
-            <div class="space-y-6">
-                <div class="space-y-2">
-                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wide">圖解名稱</label>
-                    <input id="createName" type="text" class="w-full text-2xl font-bold text-slate-800 placeholder-slate-300 border-none p-0 focus:ring-0 bg-transparent leading-tight" placeholder="範例：愛心織片">
-                    <div class="h-px w-full bg-slate-100"></div>
-                </div>
-
-                <div class="space-y-3">
-                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wide">項目描述</label>
-                    <input id="createDesc" type="text" class="w-full text-base text-slate-600 placeholder-slate-300 border-none p-0 focus:ring-0 bg-transparent" placeholder="使用 3.5mm 鉤針，牛奶棉">
-                </div>
-
-                <div class="space-y-2 relative h-full">
-                    <div class="flex justify-between items-end px-1">
-                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wide">圖解指令</label>
-                        <span id="lineCounter" class="text-xs font-bold text-slate-400">(0/100行)</span>
-                    </div>
-                    <textarea id="createSteps" class="w-full min-h-[300px] bg-slate-50 rounded-2xl p-5 text-base font-mono leading-relaxed text-slate-700 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-[#f4eee3] focus:bg-white transition-all resize-none" placeholder="R1: 環起 6X&#10;R2: 6V&#10;R3: 6(X,V)" oninput="updateLineCount()"></textarea>
-                </div>
+        
+        <div class="flex-1 overflow-y-auto px-6 py-4 space-y-6 no-scrollbar">
+            <div class="space-y-2">
+                <label class="text-xs font-bold text-slate-300 uppercase">圖解名稱</label>
+                <input id="createName" type="text" class="w-full text-2xl font-bold border-none p-0 focus:ring-0" placeholder="領航項目名稱">
+                <div class="h-px bg-slate-100"></div>
+            </div>
+            
+            <div class="space-y-2">
+                <label class="text-xs font-bold text-slate-300 uppercase">圖解指令</label>
+                <span id="lineCounter" class="float-right text-xs text-brand font-bold">(0/100行)</span>
+                <textarea id="createSteps" class="w-full min-h-[400px] bg-slate-50 rounded-2xl p-5 font-mono resize-none focus:bg-white transition-all" oninput="updateLineCount()" placeholder="R1: 6X&#10;R2: 6V"></textarea>
             </div>
         </div>
 
-        <div class="bg-white/95 backdrop-blur-sm pt-2 pb-6 px-4 w-full border-t border-slate-50 sticky bottom-0 z-20 safe-area-bottom">
-            <div class="flex gap-3 overflow-x-auto pb-4 no-scrollbar mb-1">
-                <button onclick="insertText('R')" class="flex-shrink-0 bg-white border border-slate-100 shadow-sm px-4 py-2 rounded-xl text-sm font-bold text-slate-600 active:bg-slate-50">R行</button>
-                <button onclick="insertText('X')" class="flex-shrink-0 bg-white border border-slate-100 shadow-sm px-4 py-2 rounded-xl text-sm font-bold text-slate-600 active:bg-slate-50">X 短針</button>
-                <button onclick="insertText('V')" class="flex-shrink-0 bg-white border border-slate-100 shadow-sm px-4 py-2 rounded-xl text-sm font-bold text-slate-600 active:bg-slate-50">V 加針</button>
-                <button onclick="insertText('F')" class="flex-shrink-0 bg-white border border-slate-100 shadow-sm px-4 py-2 rounded-xl text-sm font-bold text-slate-600 active:bg-slate-50">F 長針</button>
+        <footer class="p-4 border-t bg-white safe-area-inset-bottom">
+            <div class="flex gap-2 mb-4 overflow-x-auto no-scrollbar">
+                <button onclick="insertText('Rx')" class="bg-white border px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm active:scale-95 transition-transform">Rx</button>
+                <button onclick="insertText('X')" class="bg-white border px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm active:scale-95 transition-transform">X短針</button>
+                <button onclick="insertText('V')" class="bg-white border px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm active:scale-95 transition-transform">V加針</button>
+                <button onclick="insertText('F')" class="bg-white border px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm active:scale-95 transition-transform">F長針</button>
             </div>
-            <button onclick="saveAndPlay()" class="w-full bg-[#d3b17d] text-white text-lg font-bold py-4 rounded-2xl shadow-lg shadow-orange-100/50 active:opacity-90 active:scale-[0.99] transition-all">存入圖解庫</button>
-        </div>
-    </section>
-
-    <section id="playerView" class="hidden flex-col h-full relative bg-slate-50">
-        <header class="sticky top-0 bg-white/95 backdrop-blur-md z-20 pt-4 pb-2 px-6 border-b border-slate-100 shadow-sm">
-            <div class="flex justify-between items-end mb-3">
-                <div class="flex items-center gap-2">
-                    <div class="bg-slate-100 rounded-md px-2 py-1 flex items-center gap-1">
-                        <i class="fa-regular fa-clock text-xs text-slate-400"></i>
-                        <span id="timerDisplay" class="font-mono text-sm font-bold text-slate-600">00:00</span>
-                    </div>
-                </div>
-                <div class="flex items-center gap-3">
-                    <button onclick="switchView('creator')" class="text-xs text-slate-400 border border-slate-200 px-3 py-1 rounded-full">編輯列表</button>
-                    <span id="progressText" class="text-brand font-black italic text-2xl">0%</span>
-                </div>
-            </div>
-            <div class="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
-                <div id="progressBar" class="bg-brand h-full rounded-full transition-all duration-500 w-0"></div>
-            </div>
-            <div class="mt-2 flex justify-between items-center">
-                <h1 id="displayTitle" class="text-base font-bold text-slate-800 truncate max-w-[80%]">載入中...</h1>
-            </div>
-        </header>
-
-        <main id="instructionList" class="flex-1 overflow-y-auto p-4 space-y-3 pb-48 no-scrollbar scroll-smooth">
-            </main>
-
-        <footer class="fixed bottom-0 left-0 right-0 w-full bg-gradient-to-t from-white via-white to-transparent pt-6 pb-6 px-6 z-30 pointer-events-none safe-area-bottom">
-            <div class="flex items-end gap-3 pointer-events-auto max-w-md mx-auto">
-                <button id="pauseBtn" onclick="togglePause()" class="mb-1 w-14 h-14 bg-white border border-slate-200 text-slate-500 rounded-full shadow-md flex flex-col items-center justify-center active:scale-95 transition-transform">
-                    <i class="fa-solid fa-pause text-lg mb-0.5"></i>
-                    <span class="text-[10px] font-bold">暫停</span>
-                </button>
-
-                <button id="minusBtn" onclick="updateStitch(-1)" class="mb-1 w-12 h-12 bg-slate-100 text-slate-500 rounded-full shadow-md flex items-center justify-center hidden active:bg-slate-200 active:scale-95 transition-transform">
-                    <i class="fa-solid fa-minus"></i>
-                </button>
-
-                <button id="mainActionBtn" onclick="handleMainAction()" class="flex-1 h-20 bg-brand text-white rounded-3xl font-bold text-2xl shadow-xl shadow-orange-100/50 flex flex-col items-center justify-center active:scale-[0.98] transition-all relative overflow-hidden select-none">
-                    <span id="btnMainText">開始</span>
-                    <span id="btnSubText" class="text-xs opacity-80 font-normal hidden">點擊計數</span>
-                    <div id="btnProgressBg" class="absolute bottom-0 left-0 h-2 bg-black/20 w-0 transition-all duration-200"></div>
-                </button>
-            </div>
+            <button onclick="saveAndPlay()" class="w-full bg-[#d3b17d] text-white py-4 rounded-2xl font-bold text-lg shadow-lg active:opacity-90">存入領航庫</button>
         </footer>
     </section>
 
-    <div id="stitchModal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-6 backdrop-blur-sm">
-        <div class="bg-white w-full max-w-xs rounded-3xl p-6 shadow-2xl transform transition-all scale-100">
-            <h3 class="text-center text-slate-500 font-bold mb-4 uppercase tracking-wider text-xs">確認切換至此行</h3>
-            <div class="text-center mb-6">
-                <div class="flex items-center justify-center gap-4">
-                    <button onclick="adjustModalCount(-1)" class="w-12 h-12 rounded-full bg-slate-100 text-slate-600 font-bold text-xl active:bg-slate-200">-</button>
-                    <input id="modalTargetInput" type="number" class="w-24 text-center text-5xl font-black text-brand border-b-2 border-slate-200 focus:border-brand focus:outline-none bg-transparent" value="0">
-                    <button onclick="adjustModalCount(1)" class="w-12 h-12 rounded-full bg-slate-100 text-slate-600 font-bold text-xl active:bg-slate-200">+</button>
+    <section id="playerView" class="hidden flex-col h-full bg-slate-50">
+        <header class="pt-10 pb-4 px-6 bg-white border-b shadow-sm z-20">
+            <div class="flex justify-between items-end mb-3">
+                <div class="bg-slate-100 px-3 py-1.5 rounded-lg font-mono text-sm font-bold text-slate-600 flex items-center gap-2">
+                    <i class="fa-regular fa-clock"></i> <span id="timerDisplay">00:00</span>
                 </div>
-                <p class="text-xs text-slate-400 mt-3">偵測針數 (設0為閱讀模式)</p>
+                <div class="flex items-center gap-3">
+                    <button onclick="switchView('creator')" class="text-xs text-slate-400 border border-slate-200 px-3 py-1 rounded-full">編輯</button>
+                    <span id="progressText" class="text-[#d3b17d] font-black italic text-2xl">0%</span>
+                </div>
             </div>
-            <button onclick="confirmRowStart()" class="w-full py-4 bg-brand text-white rounded-xl font-bold text-lg shadow-lg active:scale-95 transition-transform">開始此行</button>
+            <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                <div id="progressBar" class="bg-[#d3b17d] h-full transition-all duration-500 w-0"></div>
+            </div>
+            <h1 id="displayTitle" class="mt-3 font-bold text-slate-800 truncate"></h1>
+        </header>
+
+        <main id="instructionList" class="p-4 space-y-3 no-scrollbar pb-64">
+            </main>
+
+        <footer class="fixed bottom-0 left-0 right-0 p-6 flex gap-4 pointer-events-none z-30 safe-area-inset-bottom">
+            <button onclick="togglePause()" class="pointer-events-auto w-16 h-16 bg-white border border-slate-100 rounded-full shadow-xl flex flex-col items-center justify-center active:scale-90 transition-transform">
+                <i class="fa-solid fa-pause text-slate-500"></i><span class="text-[10px] text-slate-400 font-bold mt-0.5">暫停</span>
+            </button>
+            <button id="minusBtn" onclick="updateStitch(-1)" class="pointer-events-auto w-14 h-14 bg-slate-100 text-slate-500 rounded-full shadow-lg hidden active:bg-slate-200"><i class="fa-solid fa-minus"></i></button>
+            <button id="mainBtn" onclick="handleMainAction()" class="pointer-events-auto flex-1 h-20 bg-[#d3b17d] text-white rounded-[2rem] font-bold text-2xl shadow-2xl relative overflow-hidden transition-all active:scale-95">
+                <span id="btnMainText">開始</span>
+                <span id="btnSubText" class="text-xs block opacity-70 font-normal hidden">點擊計數 (+1)</span>
+                <div id="btnProgressBg" class="absolute bottom-0 left-0 h-1.5 bg-black/20 w-0 transition-all"></div>
+            </button>
+        </footer>
+    </section>
+
+    <div id="stitchModal" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-[100] backdrop-blur-sm p-8">
+        <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl transition-all scale-up">
+            <h3 class="text-center text-slate-400 text-xs font-bold mb-6 uppercase tracking-widest">領航偵測針數</h3>
+            <div class="flex items-center justify-center gap-6 mb-8">
+                <button onclick="adjustModalCount(-1)" class="w-14 h-14 bg-slate-50 rounded-full font-bold text-2xl active:bg-slate-200 transition-colors">-</button>
+                <input id="modalTarget" type="number" class="w-28 text-center text-6xl font-black text-[#d3b17d] border-b-4 border-slate-100 outline-none bg-transparent" value="0">
+                <button onclick="adjustModalCount(1)" class="w-14 h-14 bg-slate-50 rounded-full font-bold text-2xl active:bg-slate-200 transition-colors">+</button>
+            </div>
+            <button onclick="confirmRowStart()" class="w-full py-5 bg-[#d3b17d] text-white rounded-2xl font-bold text-xl shadow-lg active:opacity-90 transition-all">確認開始</button>
         </div>
     </div>
 
-    <div id="pauseOverlay" class="fixed inset-0 bg-white/90 z-40 hidden flex flex-col items-center justify-center text-center">
-        <div class="text-6xl text-brand mb-4"><i class="fa-solid fa-mug-hot"></i></div>
-        <h2 class="text-2xl font-bold text-slate-800 mb-2">休息一下</h2>
-        <p class="text-slate-500 mb-8">計時器已暫停</p>
-        <button onclick="togglePause()" class="px-8 py-3 bg-brand text-white rounded-full font-bold shadow-lg text-lg">繼續編織</button>
+    <div id="pauseOverlay" class="fixed inset-0 bg-white/95 hidden z-[110] flex flex-col items-center justify-center text-center">
+        <div class="w-24 h-24 bg-[var(--brand-light)] rounded-full flex items-center justify-center mb-6">
+            <i class="fa-solid fa-mug-hot text-4xl text-[#d3b17d]"></i>
+        </div>
+        <h2 class="text-3xl font-bold text-slate-800 mb-2">領航暫停中</h2>
+        <p class="text-slate-400 mb-10">趁現在喝口水、動動手指吧</p>
+        <button onclick="togglePause()" class="px-12 py-4 bg-[#d3b17d] text-white rounded-full font-bold shadow-xl text-xl active:scale-95 transition-transform">繼續編織</button>
     </div>
 
     <script>
-        let appState = {
-            pattern: { name: "", desc: "", steps: [] },
-            currentStep: -1, stitchCount: 0, stitchTarget: 0, timerSeconds: 0, isTimerRunning: false, isPaused: false
+        let appState = { 
+            pattern: { name:"", steps:[] }, 
+            currentStep: -1, 
+            stitchCount: 0, 
+            stitchTarget: 0, 
+            timerSeconds: 0, 
+            isTimerRunning: false 
         };
-        let timerInterval = null;
-        let pendingJumpIndex = -1;
+        let timerInterval = null, pendingIdx = -1;
 
+        // --- 初始化 & 斷點記憶 ---
         function init() {
             try {
-                const saved = localStorage.getItem('knit_app_v11_fix');
+                const saved = localStorage.getItem('knit_nav_v13_scroll');
                 if (saved) {
                     const parsed = JSON.parse(saved);
-                    if(parsed && parsed.pattern && Array.isArray(parsed.pattern.steps)) appState = parsed;
+                    if(parsed && parsed.pattern) appState = parsed;
                 }
-            } catch(e) {}
-
-            if (!appState.pattern.steps || appState.pattern.steps.length === 0) {
+            } catch(e){}
+            
+            if (!appState.pattern.steps.length) {
                 switchView('creator');
-                document.getElementById('cancelCreateBtn').classList.add('hidden');
             } else {
-                renderPlayerUI(); 
+                renderPlayerUI();
+                // 一鍵恢復：自動滾動到上次結束的行數
+                scrollToCurrent();
             }
         }
 
-        function saveData() {
-            try { localStorage.setItem('knit_app_v11_fix', JSON.stringify(appState)); } catch(e) {}
-        }
+        function saveData() { localStorage.setItem('knit_nav_v13_scroll', JSON.stringify(appState)); }
 
+        // --- 視圖切換 ---
         function switchView(view) {
             const creator = document.getElementById('creatorView');
             const player = document.getElementById('playerView');
-            if (view === 'creator') {
-                document.getElementById('createName').value = appState.pattern.name || "";
-                document.getElementById('createDesc').value = appState.pattern.desc || "";
-                document.getElementById('createSteps').value = (appState.pattern.steps || []).join('\n');
-                updateLineCount();
-                if(appState.pattern.steps.length > 0) document.getElementById('cancelCreateBtn').classList.remove('hidden');
-                creator.classList.remove('hidden'); creator.classList.add('flex');
-                player.classList.remove('flex'); player.classList.add('hidden');
+            
+            if(view === 'creator') {
+                creator.classList.remove('hidden');
+                player.classList.add('hidden');
+                document.getElementById('createName').value = appState.pattern.name;
+                document.getElementById('createSteps').value = appState.pattern.steps.join('\n');
+                if(appState.pattern.steps.length) document.getElementById('cancelBtn').classList.remove('hidden');
                 pauseTimer();
             } else {
-                creator.classList.remove('flex'); creator.classList.add('hidden');
-                player.classList.remove('hidden'); player.classList.add('flex');
+                creator.classList.add('hidden');
+                player.classList.remove('hidden');
+                player.classList.add('flex');
                 renderPlayerUI();
+                scrollToCurrent();
             }
         }
 
         function updateLineCount() {
-            const val = document.getElementById('createSteps').value;
-            const lines = val ? val.split('\n').length : 0;
-            const counter = document.getElementById('lineCounter');
-            counter.innerText = `(${lines}/100行)`;
-            counter.classList.toggle('text-red-500', lines > 100);
+            const lines = document.getElementById('createSteps').value.split('\n').filter(l=>l).length;
+            document.getElementById('lineCounter').innerText = `(${lines}/100行)`;
+            document.getElementById('lineCounter').classList.toggle('text-red-500', lines > 100);
         }
 
-        function insertText(text) {
-            const area = document.getElementById('createSteps');
-            const start = area.selectionStart;
-            const end = area.selectionEnd;
-            area.value = area.value.substring(0, start) + text + area.value.substring(end);
-            area.focus();
-            updateLineCount();
+        function insertText(t) {
+            const a = document.getElementById('createSteps');
+            const start = a.selectionStart;
+            a.value = a.value.substring(0, start) + t + a.value.substring(a.selectionEnd);
+            a.selectionStart = a.selectionEnd = start + t.length;
+            updateLineCount(); a.focus();
         }
 
         function saveAndPlay() {
-            const name = document.getElementById('createName').value || "未命名";
-            const desc = document.getElementById('createDesc').value || "";
-            const steps = document.getElementById('createSteps').value.split('\n').filter(l => l.trim());
-            if (steps.length === 0) return alert("請輸入內容");
-            appState.pattern = { name, desc, steps };
+            const steps = document.getElementById('createSteps').value.split('\n').filter(l=>l.trim());
+            if(!steps.length) return alert("請輸入圖解內容");
+            appState.pattern = { name: document.getElementById('createName').value || "未命名作品", steps };
             appState.currentStep = -1; 
-            appState.stitchCount = 0;
-            appState.stitchTarget = 0;
-            saveData();
+            saveData(); 
             switchView('player');
         }
 
+        // --- 領航核心控制 ---
         function handleMainAction() {
-            if (appState.currentStep === -1) {
-                prepareRow(0); 
-                return;
-            }
-            if (appState.stitchTarget > 0) {
-                updateStitch(1);
-            } else {
-                prepareRow(appState.currentStep + 1); 
-            }
+            if(appState.currentStep === -1) prepareRow(0);
+            else if(appState.stitchTarget > 0) updateStitch(1);
+            else prepareRow(appState.currentStep + 1);
         }
 
-        function jumpToRow(index) {
-            if (index === appState.currentStep) return; 
-            prepareRow(index);
-        }
-
-        function prepareRow(index) {
-            if (index >= appState.pattern.steps.length) {
-                alert("🎉 完成！");
-                appState.currentStep = -1;
-                appState.stitchCount = 0;
-                appState.stitchTarget = 0;
-                saveData();
-                renderPlayerUI();
-                return;
+        function prepareRow(idx) {
+            if(idx >= appState.pattern.steps.length) {
+                alert("🎉 作品領航完成！"); appState.currentStep = -1; saveData(); renderPlayerUI(); return;
             }
-
-            pendingJumpIndex = index;
-            const rawText = appState.pattern.steps[index];
-            const instructionOnly = rawText.replace(/^(R\d+|Round\s*\d+|行\d+)\s*[:：.]?\s*/i, '');
-            const cleanText = instructionOnly.replace(/：/g, ':');
-            let detectedCount = 0;
-
-            const matchTotal = rawText.match(/[\(（](\d+)[\)）]\s*$/);
-            if (matchTotal) {
-                detectedCount = parseInt(matchTotal[1]);
+            pendingIdx = idx;
+            const rawText = appState.pattern.steps[idx];
+            const cleanText = rawText.replace(/^(R\d+|Round\s*\d+|行\d+)\s*[:：.]?\s*/i, '').replace(/：/g, ':');
+            
+            let count = 0;
+            const totalMatch = rawText.match(/[\(（](\d+)[\)）]\s*$/);
+            if(totalMatch) {
+                count = parseInt(totalMatch[1]);
             } else {
-                const matchGroup = cleanText.match(/(\d+)\s*[\(（](.*?)[\)）]/);
-                if (matchGroup) {
-                    const multiplier = parseInt(matchGroup[1]);
-                    const items = matchGroup[2].split(/[,，]/).filter(s=>s.trim()).length;
-                    detectedCount = multiplier * items;
+                const groupMatch = cleanText.match(/(\d+)\s*[\(（](.*?)[\)）]/);
+                if(groupMatch) {
+                    count = parseInt(groupMatch[1]) * groupMatch[2].split(/[,，]/).filter(s=>s.trim()).length;
                 } else {
-                    const matchV = cleanText.match(/(\d+)\s*V/i);
-                    const matchF = cleanText.match(/(\d+)\s*F/i);
-                    const matchX = cleanText.match(/(\d+)\s*X/i);
-                    if (matchV) detectedCount = parseInt(matchV[1]) * 2;
-                    else if (matchF) detectedCount = parseInt(matchF[1]); 
-                    else if (matchX) detectedCount = parseInt(matchX[1]);
+                    const V = cleanText.match(/(\d+)\s*V/i), F = cleanText.match(/(\d+)\s*F/i), X = cleanText.match(/(\d+)\s*X/i);
+                    if(V) count = parseInt(V[1])*2; else if(F||X) count = parseInt((F||X)[1]);
                 }
             }
-
-            document.getElementById('modalTargetInput').value = detectedCount;
+            document.getElementById('modalTarget').value = count;
             document.getElementById('stitchModal').classList.remove('hidden');
             pauseTimer();
         }
 
-        function adjustModalCount(delta) {
-            const input = document.getElementById('modalTargetInput');
-            input.value = Math.max(0, (parseInt(input.value)||0) + delta);
+        function adjustModalCount(d) {
+            const i = document.getElementById('modalTarget'); 
+            i.value = Math.max(0, (parseInt(i.value) || 0) + d);
         }
 
         function confirmRowStart() {
-            appState.stitchTarget = parseInt(document.getElementById('modalTargetInput').value) || 0;
-            appState.stitchCount = 0;
-            if (pendingJumpIndex !== -1) {
-                appState.currentStep = pendingJumpIndex;
-                pendingJumpIndex = -1;
-            }
-            
+            appState.stitchTarget = parseInt(document.getElementById('modalTarget').value) || 0;
+            appState.stitchCount = 0; 
+            appState.currentStep = pendingIdx;
             document.getElementById('stitchModal').classList.add('hidden');
+            document.getElementById('mainBtn').classList.remove('bg-green-500');
+            startTimer(); saveData(); renderPlayerUI();
+            scrollToCurrent();
+        }
+
+        function updateStitch(d) {
+            if(navigator.vibrate) navigator.vibrate(30);
+            appState.stitchCount = Math.max(0, appState.stitchCount + d);
+            saveData(); updateFooter();
             
-            // --- 關鍵修復：重置按鈕狀態 ---
-            const btn = document.getElementById('mainActionBtn');
-            btn.classList.remove('bg-green-500');
-            document.getElementById('btnSubText').classList.remove('hidden');
+            if(appState.stitchTarget > 0 && appState.stitchCount >= appState.stitchTarget) {
+                if(navigator.vibrate) navigator.vibrate([50,50,200]);
+                document.getElementById('btnMainText').innerText = "完成！";
+                document.getElementById('btnSubText').classList.add('hidden');
+                document.getElementById('mainBtn').classList.add('bg-green-500');
+                setTimeout(()=> prepareRow(appState.currentStep + 1), 600);
+            }
+        }
+
+        // --- UI 渲染 ---
+        function renderPlayerUI() {
+            document.getElementById('displayTitle').innerText = appState.pattern.name;
+            const list = document.getElementById('instructionList');
+            const current = appState.currentStep;
             
-            startTimer();
-            saveData();
-            renderPlayerUI();
+            list.innerHTML = appState.pattern.steps.map((step, i) => `
+                <div id="step-${i}" onclick="if(${i}!==${current})prepareRow(${i})" class="p-5 rounded-2xl border flex items-center gap-4 transition-all duration-300 ${i < current ? 'done-row bg-slate-50 border-slate-100' : i === current ? 'focus-row border-brand shadow-md' : 'bg-white border-slate-50 shadow-sm'}">
+                    <div class="flex-shrink-0 w-8 flex justify-center">
+                        ${i < current ? '<i class="fa-solid fa-check text-green-400 text-lg"></i>' : `<span class="font-bold text-xs text-brand opacity-60">R${i+1}</span>`}
+                    </div>
+                    <div class="flex-1 font-mono text-lg outline-none" contenteditable="${i === current}" onblur="appState.pattern.steps[${i}]=this.innerText;saveData()">${step}</div>
+                </div>
+            `).join('');
+            updateFooter(); updateTimerDisplay();
+        }
+
+        function updateFooter() {
+            const total = appState.pattern.steps.length;
+            const completed = Math.max(0, appState.currentStep);
+            const pct = total === 0 ? 0 : Math.round((completed / total) * 100);
             
+            document.getElementById('progressBar').style.width = pct + '%';
+            document.getElementById('progressText').innerText = pct + '%';
+            
+            if(appState.stitchTarget > 0) {
+                document.getElementById('btnMainText').innerText = `${appState.stitchCount} / ${appState.stitchTarget}`;
+                document.getElementById('btnSubText').classList.remove('hidden');
+                document.getElementById('minusBtn').classList.remove('hidden');
+                document.getElementById('btnProgressBg').style.width = (appState.stitchCount / appState.stitchTarget * 100) + '%';
+            } else {
+                document.getElementById('btnMainText').innerText = appState.currentStep === -1 ? "開始領航" : "下一行";
+                document.getElementById('btnSubText').classList.add('hidden');
+                document.getElementById('minusBtn').classList.add('hidden');
+                document.getElementById('btnProgressBg').style.width = '0%';
+            }
+        }
+
+        function scrollToCurrent() {
             setTimeout(() => {
                 const el = document.getElementById(`step-${appState.currentStep}`);
                 if(el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }, 300);
         }
 
-        function updateStitch(delta) {
-            if (navigator.vibrate) navigator.vibrate(30);
-            const next = appState.stitchCount + delta;
-            if (next < 0) return;
-            appState.stitchCount = next;
-            saveData();
-            updateFooterUI();
-            
-            if (appState.stitchTarget > 0 && appState.stitchCount >= appState.stitchTarget) {
-                if (navigator.vibrate) navigator.vibrate([50,50,200]);
-                const btn = document.getElementById('mainActionBtn');
-                
-                // --- 關鍵修復：不覆蓋 DOM 結構，只改文字 ---
-                document.getElementById('btnMainText').innerText = "完成！";
-                document.getElementById('btnSubText').classList.add('hidden');
-                
-                btn.classList.add('bg-green-500');
-                
-                setTimeout(() => {
-                    btn.classList.remove('bg-green-500');
-                    prepareRow(appState.currentStep + 1);
-                }, 600);
-            }
-        }
-
-        function saveEdit(el, index) {
-            const newText = el.innerText;
-            if (newText !== appState.pattern.steps[index]) {
-                appState.pattern.steps[index] = newText;
-                saveData();
-            }
-        }
-
-        function renderPlayerUI() {
-            document.getElementById('displayTitle').innerText = appState.pattern.name;
-            renderList();
-            updateFooterUI();
-            updateTimerDisplay();
-        }
-
-        function renderList() {
-            const list = document.getElementById('instructionList');
-            const current = appState.currentStep;
-            
-            if (appState.pattern.steps.length === 0) {
-                list.innerHTML = `<div class="text-center text-slate-400 mt-20">無資料</div>`;
-                return;
-            }
-
-            list.innerHTML = appState.pattern.steps.map((step, index) => {
-                let statusClass = "bg-white text-slate-500 shadow-sm";
-                let icon = `<span class="text-xs text-slate-300 w-6 font-bold">${index + 1}</span>`;
-                let isEditable = "false"; 
-
-                if (index < current) {
-                    statusClass = "done-row bg-slate-50 text-slate-300"; 
-                    icon = `<i class="fa-solid fa-check text-green-400 w-6"></i>`;
-                } else if (index === current) {
-                    statusClass = "focus-row"; 
-                    icon = `<span class="text-xs font-black text-brand w-6">R${index + 1}</span>`;
-                    isEditable = "true"; 
-                }
-
-                return `
-                    <div id="step-${index}" onclick="jumpToRow(${index})" class="p-4 rounded-xl border border-slate-50 flex items-center gap-3 transition-all ${statusClass}">
-                        ${icon}
-                        <div class="flex-1 text-lg font-mono outline-none" contenteditable="${isEditable}" onblur="saveEdit(this, ${index})">${step}</div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function updateFooterUI() {
-            const btnMain = document.getElementById('btnMainText');
-            const btnSub = document.getElementById('btnSubText');
-            const minusBtn = document.getElementById('minusBtn');
-            const progressBg = document.getElementById('btnProgressBg');
-            
-            const total = appState.pattern.steps.length;
-            const completed = Math.max(0, appState.currentStep);
-            const pct = total === 0 ? 0 : Math.round((completed / total) * 100);
-            
-            document.getElementById('progressBar').style.width = `${pct}%`;
-            document.getElementById('progressText').innerText = `${pct}%`;
-
-            if (appState.stitchTarget > 0) {
-                // 安全檢查：確認元素存在
-                if(btnMain) btnMain.innerText = `${appState.stitchCount} / ${appState.stitchTarget}`;
-                if(btnSub) {
-                    btnSub.innerText = "點擊計數 (+1)";
-                    btnSub.classList.remove('hidden');
-                }
-                if(minusBtn) minusBtn.classList.remove('hidden');
-                
-                const btnPct = Math.min(100, (appState.stitchCount/appState.stitchTarget)*100);
-                if(progressBg) progressBg.style.width = `${btnPct}%`;
-            } else {
-                const isStart = appState.currentStep === -1;
-                if(btnMain) btnMain.innerText = isStart ? "開始編織" : "下一行";
-                if(btnSub) btnSub.classList.add('hidden');
-                if(minusBtn) minusBtn.classList.add('hidden');
-                if(progressBg) progressBg.style.width = '0%';
-            }
-        }
-
+        // --- 計時 & 暫停 ---
         function startTimer() {
             if(appState.isTimerRunning) return;
             appState.isTimerRunning = true;
-            appState.isPaused = false;
             document.getElementById('pauseOverlay').classList.add('hidden');
-            timerInterval = setInterval(() => {
-                appState.timerSeconds++;
-                updateTimerDisplay();
-            }, 1000);
+            timerInterval = setInterval(() => { appState.timerSeconds++; updateTimerDisplay(); }, 1000);
         }
         function pauseTimer() { appState.isTimerRunning = false; clearInterval(timerInterval); }
-        function togglePause() {
-            if (appState.isTimerRunning) {
-                pauseTimer(); appState.isPaused = true;
-                document.getElementById('pauseOverlay').classList.remove('hidden');
-            } else startTimer();
+        function togglePause() { 
+            if(appState.isTimerRunning) { 
+                pauseTimer(); 
+                document.getElementById('pauseOverlay').classList.remove('hidden'); 
+            } else startTimer(); 
         }
         function updateTimerDisplay() {
             const m = Math.floor(appState.timerSeconds/60).toString().padStart(2,'0');
@@ -466,10 +349,8 @@
             document.getElementById('timerDisplay').innerText = `${m}:${s}`;
         }
 
-        setTimeout(init, 100);
+        // 手機版：延遲啟動確保高度計算正確
+        window.addEventListener('load', () => setTimeout(init, 100));
     </script>
 </body>
-    
-  </body>
-  
 </html>
