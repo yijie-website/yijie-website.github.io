@@ -1,21 +1,23 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
+<!DOCTYPE html>
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>領航鈎織 - v16 修正版</title>
+    <title>領航鈎織 - v22 懸浮定版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         :root { 
             --brand-color: #d3b17d; 
             --brand-light: #f4eee3; 
-            /* 需求3: 修正完成色系為暖棕色 */
+            /* 需求3: 暖棕色 */
             --brand-done: #b08d55; 
             --bg-main: #ffffff;
         }
         
-        /* 需求6: 停用雙擊放大 */
+        /* 需求6: 鎖定雙擊放大 */
         html, body { 
             height: 100%; margin: 0; padding: 0; overflow: hidden; 
             touch-action: manipulation; 
@@ -27,16 +29,23 @@
             -webkit-tap-highlight-color: transparent; 
         }
 
-        /* 需求5: 佈局結構 (固定頭尾，中間滑動) */
+        /* 需求5: 佈局結構 */
         .header-fixed { height: 160px; flex-shrink: 0; z-index: 40; }
-        .footer-fixed { height: 120px; flex-shrink: 0; z-index: 50; }
+        
+        /* 底部懸浮區：高度設為 0，讓內容不佔位，但按鈕透過絕對定位浮起來 */
+        .footer-floating { 
+            position: fixed; bottom: 0; left: 0; right: 0; 
+            height: 0; z-index: 50; 
+            overflow: visible; /* 讓按鈕凸出來 */
+        }
         
         #instructionList {
             flex: 1;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
             scroll-behavior: smooth;
-            padding-bottom: 20px;
+            /* 關鍵：底部留白加多，確保最後一行文字能滑到按鈕上方被看見，而不會被擋死 */
+            padding-bottom: 120px; 
         }
 
         .focus-row { background-color: var(--brand-light); border-left: 6px solid var(--brand-color); transform: scale(1.02); font-weight: 700; z-index: 10; }
@@ -44,7 +53,7 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         [contenteditable="true"]:focus { outline: none; border-bottom: 2px dashed var(--brand-color); background: white; }
         
-        /* 需求1: 滑動開關樣式 */
+        /* 需求1: 滑動開關 */
         .switch { position: relative; display: inline-block; width: 50px; height: 26px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider {
@@ -58,7 +67,7 @@
         input:checked + .slider { background-color: var(--brand-color); }
         input:checked + .slider:before { transform: translateX(24px); }
 
-        /* 完成狀態背景 */
+        /* 完成色系 */
         .bg-brand-done { background-color: var(--brand-done) !important; }
         
         /* 動畫 */
@@ -79,7 +88,7 @@
         <div class="flex-1 overflow-y-auto px-6 py-4 space-y-6 no-scrollbar">
             <div class="space-y-1">
                 <label class="text-xs font-bold text-slate-300">作品名稱</label>
-                <input id="createName" type="text" class="w-full text-2xl font-bold border-none p-0 focus:ring-0 text-slate-800" placeholder="項目名稱">
+                <input id="createName" type="text" class="w-full text-2xl font-bold border-none p-0 focus:ring-0 text-slate-800" placeholder="名稱">
                 <div class="h-px bg-slate-100"></div>
             </div>
 
@@ -110,7 +119,7 @@
                     <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> 一鍵整理 (轉繁體+拆行+計算)
                 </button>
                 
-                <textarea id="createSteps" class="w-full min-h-[350px] bg-slate-50 rounded-2xl p-5 font-mono text-base leading-relaxed text-slate-700 focus:bg-white transition-colors resize-none focus:outline-none" oninput="updateLineCount()" placeholder="在此貼上圖解... 完畢請按下一鍵整理&#10;R1: 6X (6)"></textarea>
+                <textarea id="createSteps" class="w-full min-h-[350px] bg-slate-50 rounded-2xl p-5 font-mono text-base leading-relaxed text-slate-700 focus:bg-white transition-colors resize-none focus:outline-none" oninput="updateLineCount()" placeholder="在此貼上圖解...&#10;R1: 6X (6)&#10;完成後按[一鍵整理]&#10"></textarea>
             </div>
         </div>
 
@@ -145,16 +154,16 @@
 
         <main id="instructionList" class="no-scrollbar"></main>
 
-        <footer class="footer-fixed p-6 flex gap-4 pointer-events-none safe-area-bottom">
-            <button onclick="togglePause()" class="pointer-events-auto w-16 h-16 bg-white border border-slate-100 rounded-full shadow-xl flex flex-col items-center justify-center active:scale-90 transition-transform">
+        <footer class="footer-floating p-6 flex gap-4 pointer-events-none safe-area-bottom items-end justify-center h-auto pb-8">
+            <button onclick="togglePause()" class="pointer-events-auto w-16 h-16 bg-[#f4eee3] border border-white/50 rounded-full shadow-lg flex flex-col items-center justify-center active:scale-90 transition-transform z-50">
                 <i class="fa-solid fa-pause text-slate-500 text-lg"></i><span class="text-[10px] text-slate-400 font-bold mt-1">暫停</span>
             </button>
             
-            <button id="minusBtn" onclick="updateStitch(-1)" class="pointer-events-auto w-16 h-16 bg-slate-100 text-slate-500 rounded-full shadow-lg hidden active:bg-slate-200 flex items-center justify-center">
+            <button id="minusBtn" onclick="updateStitch(-1)" class="pointer-events-auto w-16 h-16 bg-[#f4eee3] border border-white/50 text-slate-500 rounded-full shadow-lg hidden active:bg-slate-200 flex items-center justify-center z-50">
                 <i class="fa-solid fa-minus text-lg"></i>
             </button>
 
-            <button id="mainBtn" onclick="handleMainAction()" class="pointer-events-auto flex-1 h-16 bg-[#d3b17d] text-white rounded-[2rem] font-bold text-xl shadow-2xl relative overflow-hidden transition-all active:scale-95 flex flex-col items-center justify-center">
+            <button id="mainBtn" onclick="handleMainAction()" class="pointer-events-auto flex-1 h-16 bg-[#d3b17d] text-white rounded-[2rem] font-bold text-xl shadow-2xl relative overflow-hidden transition-all active:scale-95 flex flex-col items-center justify-center z-50">
                 <span id="btnMainText">開始領航</span>
                 <span id="btnSubText" class="text-xs block opacity-70 font-normal hidden">點擊計數 (+1)</span>
                 <div id="btnProgressBg" class="absolute bottom-0 left-0 h-1.5 bg-black/20 w-0 transition-all"></div>
@@ -187,17 +196,16 @@
     <script>
         let appState = { 
             pattern: { name:"", desc:"", steps:[] }, 
-            settings: { autoAccept: true }, // 預設開啟
+            settings: { autoAccept: true }, // 需求2: 預設開啟
             currentStep: -1, stitchCount: 0, stitchTarget: 0, timerSeconds: 0, isTimerRunning: false 
         };
         let timerInterval = null, pendingIdx = -1;
 
-        // --- 需求4: 智慧整理 & 簡轉繁 ---
         function smartFormat() {
             let raw = document.getElementById('createSteps').value;
             if(!raw.trim()) return;
 
-            // 簡轉繁對照表 (鉤織術語優先)
+            // 需求4: 簡轉繁
             const map = {
                 '环': '環', '针': '針', '钩': '鉤', '线': '線', '长': '長', '短': '短',
                 '编': '編', '织': '織', '样': '樣', '图': '圖', '录': '錄', '两': '兩',
@@ -242,8 +250,8 @@
 
         function init() {
             try {
-                // v16 Modified Key
-                const saved = localStorage.getItem('knit_nav_v16_mod');
+                // v22 Key
+                const saved = localStorage.getItem('knit_nav_v22_float');
                 if (saved) {
                     appState = JSON.parse(saved);
                     if (appState.settings?.autoAccept === undefined) appState.settings = { autoAccept: true };
@@ -256,7 +264,7 @@
 
         function saveData() { 
             appState.settings.autoAccept = document.getElementById('autoAcceptToggle').checked;
-            localStorage.setItem('knit_nav_v16_mod', JSON.stringify(appState)); 
+            localStorage.setItem('knit_nav_v22_float', JSON.stringify(appState)); 
         }
 
         function switchView(view) {
@@ -290,18 +298,14 @@
             updateLineCount(); a.focus();
         }
 
-        // --- 需求2: 編輯後保留進度 ---
+        // --- 需求2: 編輯保留進度 ---
         function saveAndPlay() {
             const steps = document.getElementById('createSteps').value.split('\n').filter(l=>l.trim());
             if(!steps.length) return alert("請輸入指令");
-            
             appState.pattern.name = document.getElementById('createName').value || "未命名";
             appState.pattern.desc = document.getElementById('createDesc').value || "";
             appState.pattern.steps = steps;
-            
-            // 只有當完全未開始時才設為 -1，否則保留原進度
             if (appState.currentStep === undefined) appState.currentStep = -1;
-            
             saveData(); switchView('player');
         }
 
@@ -312,10 +316,9 @@
         }
 
         function prepareRow(idx) {
-            // --- 需求7: 作品完成時 (方案B) 手動點擊 ---
+            // --- 需求7: 完成時 (B方案) 手動 ---
             if(idx >= appState.pattern.steps.length) {
-                showOverlay('success'); 
-                return;
+                showOverlay('success'); return;
             }
             pendingIdx = idx;
             const text = appState.pattern.steps[idx];
@@ -355,10 +358,10 @@
                 document.getElementById('btnMainText').innerText = "本行完成！";
                 document.getElementById('btnSubText').classList.add('hidden');
                 
-                // --- 需求3: 修正色系 ---
+                // --- 需求3: 暖棕色 ---
                 document.getElementById('mainBtn').classList.add('bg-brand-done');
                 
-                // --- 需求7: 單行完成時 (方案A) 自動消失 ---
+                // --- 需求7: 單行完成 (A方案) 自動消失 ---
                 showOverlay('row_done');
                 setTimeout(()=> {
                     hideOverlay();
@@ -385,7 +388,7 @@
                 btn.onclick = togglePause;
             } else if(type === 'row_done') {
                 icon.className = "fa-solid fa-check text-4xl text-[#b08d55]";
-                title.innerText = "本行領航完成";
+                title.innerText = "本行完成";
                 sub.innerText = "準備進入下一行...";
                 btn.classList.add('hidden'); 
             } else if(type === 'success') {
@@ -406,9 +409,7 @@
             const current = appState.currentStep;
             list.innerHTML = appState.pattern.steps.map((step, i) => `
                 <div id="step-${i}" onclick="if(${i}!==${current})prepareRow(${i})" class="p-5 rounded-2xl border flex items-center gap-4 transition-all duration-300 ${i<current?'done-row bg-slate-50':i===current?'focus-row border-brand shadow-sm':'bg-white shadow-sm border-slate-50'}">
-                    <div class="flex-shrink-0 w-8 flex justify-center">
-                        ${i<current?'<i class="fa-solid fa-check text-[#b08d55]"></i>':`<span class="font-bold text-xs text-brand opacity-60">R${i+1}</span>`}
-                    </div>
+                    <div class="flex-shrink-0 w-8 flex justify-center">${i<current?'<i class="fa-solid fa-check text-[#b08d55]"></i>':`<span class="font-bold text-xs text-brand opacity-60">R${i+1}</span>`}</div>
                     <div class="flex-1 font-mono text-lg outline-none" contenteditable="${i===current}" onblur="appState.pattern.steps[${i}]=this.innerText;saveData()">${step}</div>
                 </div>
             `).join('');
@@ -448,9 +449,7 @@
             timerInterval = setInterval(() => { appState.timerSeconds++; updateTimerDisplay(); }, 1000);
         }
         function pauseTimer() { appState.isTimerRunning = false; clearInterval(timerInterval); }
-        function togglePause() { 
-            if(appState.isTimerRunning) { pauseTimer(); showOverlay('pause'); } else startTimer(); 
-        }
+        function togglePause() { if(appState.isTimerRunning) { pauseTimer(); showOverlay('pause'); } else startTimer(); }
         function updateTimerDisplay() {
             const m = Math.floor(appState.timerSeconds/60).toString().padStart(2,'0'), s = (appState.timerSeconds%60).toString().padStart(2,'0');
             document.getElementById('timerDisplay').innerText = `${m}:${s}`;
@@ -458,4 +457,5 @@
         window.addEventListener('load', () => setTimeout(init, 100));
     </script>
 </body>
+</html>
 </html>
