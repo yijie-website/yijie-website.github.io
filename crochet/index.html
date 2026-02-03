@@ -125,7 +125,7 @@
                 </div>
                 
                 <button onclick="smartFormat()" class="w-full py-3 bg-purple-50 text-purple-600 rounded-xl text-sm font-bold border border-purple-100 shadow-sm active:bg-purple-100 transition-colors">
-                    <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> 一鍵整理 (轉繁體+拆行+計算)
+                    <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> 一鍵整理 (拆行+計算)
                 </button>
                 
                 <textarea id="createSteps" class="w-full min-h-[350px] bg-slate-50 rounded-2xl p-5 font-mono text-base leading-relaxed text-slate-700 focus:bg-white transition-colors resize-none focus:outline-none" oninput="updateLineCount()" placeholder="在此貼上圖解...&#10;R1: 6X (6)&#10;完成後按[一鍵整理]&#10"></textarea>
@@ -173,7 +173,7 @@
             </button>
 
             <button id="mainBtn" onclick="handleMainAction()" class="pointer-events-auto flex-1 h-16 bg-[#d3b17d] text-white rounded-[2rem] font-bold text-xl shadow-2xl relative overflow-hidden transition-all active:scale-95 flex flex-col items-center justify-center z-50">
-                <span id="btnMainText">開始領航</span>
+                <span id="btnMainText">開始</span>
                 <span id="btnSubText" class="text-xs block opacity-70 font-normal hidden">點擊計數 (+1)</span>
                 <div id="btnProgressBg" class="absolute bottom-0 left-0 h-1.5 bg-black/20 w-0 transition-all"></div>
             </button>
